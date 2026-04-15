@@ -1,0 +1,38 @@
+extensions:
+  health_check:
+  
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+  awsxray:
+    endpoint: 0.0.0.0:2000
+    transport: udp
+
+processors:
+  batch/traces:
+    timeout: 1s
+    send_batch_size: 50
+  resourcedetection/ecs:
+    detectors: [env, ecs, ec2, system]
+    timeout: 2s
+    override: false
+
+exporters:
+  awsxray:
+    region: "${env:AWS_REGION}"
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp,awsxray]
+      processors: [batch/traces, resourcedetection/ecs]
+      exporters: [awsxray]
+      
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: warn
+

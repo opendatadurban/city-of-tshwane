@@ -1,0 +1,22 @@
+# Locked dependencies for multistage build to speed up ci/cd
+# and allow baking image into AWS AMI to reduce cold start time on ECS
+FROM python:3.12-slim-bookworm
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy and install dependencies
+COPY requirements.txt ./
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev \
+    && python -m pip install --upgrade pip \
+    && python -m pip install -r requirements.txt \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy application code
+COPY ./src .
+
+EXPOSE 8000
+
+# Command to run the FastAPI application
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"]

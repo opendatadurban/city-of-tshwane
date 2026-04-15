@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = ""
+authors = ["Luke Rayner <105429597+octopus-arms-passant@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "0.115.4"
+pydantic = {version = "2.9.2", extras = ["email"]}
+pydantic-settings = "2.6.0"
+alembic = "1.13.3"
+sqlalchemy = {version = "2.0.36", extras = ["asyncio"]}
+pyjwt = "2.9.0"
+python-multipart = "^0.0.19"
+uvicorn = "0.32.0"
+passlib = "1.7.4"
+asyncpg = "0.30.0"
+python-dotenv = "1.0.1"
+psycopg2-binary = "^2.9.10"
+opentelemetry-distro = "^0.49b2"
+opentelemetry-exporter-otlp = "^1.28.2"
+opentelemetry-api = "^1.28.2"
+opentelemetry-instrumentation-fastapi = "^0.49b2"
+opentelemetry-instrumentation-asyncpg = "^0.49b2"
+opentelemetry-instrumentation-sqlalchemy = "^0.49b2"
+opentelemetry-instrumentation-logging = "^0.49b2"
+opentelemetry-sdk-extension-aws = "^2.0.2"
+opentelemetry-propagator-aws-xray = "^1.0.2"
+boto3 = "^1.35.77"
+botocore = "^1.35.77"
+httpx = "^0.28.0"
+
+[tool.poetry.group.test.dependencies]
+black = "24.10.0"
+pre-commit = "4.0.1"
+pytest = "8.1.1"
+pytest-asyncio = "0.23.8"
+asgi-lifespan = "^2.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

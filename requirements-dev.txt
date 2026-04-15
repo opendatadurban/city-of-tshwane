@@ -1,0 +1,7 @@
+black==24.10.0
+pre-commit==4.0.1
+pytest==8.1.1
+pytest-asyncio
+locust
+asgi-lifespan
+httpx
