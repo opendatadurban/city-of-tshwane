@@ -36,6 +36,9 @@ x-app-base: &api-base
     - OTEL_PYTHON_LOG_FORMAT=${OTEL_PYTHON_LOG_FORMAT}
     - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
     - OTEL_PYTHON_LOG_LEVEL=${OTEL_PYTHON_LOG_LEVEL}
+    - OCPO_BASE_URL=${OCPO_BASE_URL}
+    - XROAD_SERVICE={XROAD_SERVICE}
+    - XROAD_CLIENT={XROAD_CLIENT}
 
 services:
   # admin:
@@ -60,7 +63,7 @@ services:
       - adot
     <<: *postgres-base
     ports:
-      - 8081:5432
+      - 8082:5432
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
     networks:
@@ -93,7 +96,7 @@ services:
     environment:
       - POSTGRES_SERVER=${POSTGRES_SERVER}
     ports:
-      - 8000:8000
+      - 8001:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
