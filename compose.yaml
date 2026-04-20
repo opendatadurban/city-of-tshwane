@@ -63,7 +63,7 @@ services:
       - adot
     <<: *postgres-base
     ports:
-      - 8082:5432
+      - 8081:5432
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
     networks:
@@ -96,7 +96,7 @@ services:
     environment:
       - POSTGRES_SERVER=${POSTGRES_SERVER}
     ports:
-      - 8001:8000
+      - 8000:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
