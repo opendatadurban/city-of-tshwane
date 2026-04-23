@@ -1,94 +1,125 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from app.models.api.payments import PaymentRecord
-from app.utils.helpers import is_valid_said
 
 
-def filter_ocpo_records_for_tshwane(
-    records: list[dict[str, Any]],
-    identifier_value: str,
-    identifier_type: str | None,
-    start_date: date | None,
-    end_date: date | None,
+def _safe_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    value_str = str(value).strip()
+    return value_str if value_str else None
+
+
+def _select_director(
+    result: dict[str, Any],
+    identification_number: str,
+) -> dict[str, Any] | None:
+    directors = result.get("directors", [])
+    if not isinstance(directors, list) or not directors:
+        return None
+
+    matched_director_ids = result.get("matched_director_ids", [])
+    if isinstance(matched_director_ids, list) and matched_director_ids:
+        matched_ids = {str(item) for item in matched_director_ids}
+        for director in directors:
+            if str(director.get("id")) in matched_ids:
+                return director
+
+    expected_id = str(identification_number).strip()
+    for director in directors:
+        if str(director.get("identification_number", "")).strip() == expected_id:
+            return director
+
+    return directors[0]
+
+
+def _select_bank_account(result: dict[str, Any]) -> dict[str, Any] | None:
+    bank_accounts = result.get("bank_accounts", [])
+    if not isinstance(bank_accounts, list) or not bank_accounts:
+        return None
+
+    for account in bank_accounts:
+        if account.get("is_preferred_account") is True and account.get("is_active") is True:
+            return account
+
+    for account in bank_accounts:
+        if account.get("is_active") is True:
+            return account
+
+    return bank_accounts[0]
+
+
+def filter_ocpo_results_for_tshwane(
+    results: list[dict[str, Any]],
+    identification_number: str,
 ) -> list[dict[str, Any]]:
     """
-    Local safety filter.
-
-    Keep this even if OCPO supports upstream filters, so the Tshwane API
-    remains defensive and only returns records matching the exact request.
+    Defensive filter:
+    keep only result objects that include a director matching the requested SA ID.
     """
+    expected_id = str(identification_number).strip()
     filtered: list[dict[str, Any]] = []
 
-    for record in records:
-        record_type = str(record.get("entity_number_type", "")).strip().upper()
-        record_value = str(record.get("entity_type_number", "")).strip()
-
-        if record_value != str(identifier_value).strip():
+    for result in results:
+        directors = result.get("directors", [])
+        if not isinstance(directors, list):
             continue
 
-        if identifier_type and identifier_type != "ANY":
-            if record_type != identifier_type.strip().upper():
-                continue
-
-        raw_date = record.get("disbursement_date")
-        record_date: date | None = None
-
-        if raw_date:
-            try:
-                record_date = date.fromisoformat(str(raw_date))
-            except ValueError:
-                record_date = None
-
-        if start_date and record_date and record_date < start_date:
-            continue
-
-        if end_date and record_date and record_date > end_date:
-            continue
-
-        filtered.append(record)
+        if any(
+            str(director.get("identification_number", "")).strip() == expected_id
+            for director in directors
+        ):
+            filtered.append(result)
 
     return filtered
 
 
-def map_ocpo_record_to_tshwane(record: dict[str, Any]) -> PaymentRecord:
-    """
-    Final mapping decisions:
-    - identifier_value comes from entity_type_number
-    - entity_name comes from payment_name
-    - payment_amt comes from payment_amt
-    - payment_name is also used as owner_name fallback
-    - if entity_type_number validates as SAID, use it as owner_said_number
-    - director fields remain 'Not Available'
-    """
-    identifier_type = record.get("entity_number_type")
-    identifier_value = record.get("entity_type_number")
-    payment_name = record.get("payment_name")
+def map_ocpo_result_to_tshwane_records(
+    result: dict[str, Any],
+    identification_number: str,
+) -> list[PaymentRecord]:
+    supplier = result.get("supplier", {}) or {}
+    selected_director = _select_director(result, identification_number) or {}
+    selected_bank_account = _select_bank_account(result) or {}
 
-    identifier_value_str = (
-        str(identifier_value).strip() if identifier_value is not None else ""
-    )
+    bas_spend_items = result.get("bas_spend", [])
+    if not isinstance(bas_spend_items, list) or not bas_spend_items:
+        bas_spend_items = [{}]
 
-    owner_said_number = (
-        identifier_value_str if is_valid_said(identifier_value_str) else "Not Available"
-    )
+    director_first_name = _safe_str(selected_director.get("director_name"))
+    director_surname = _safe_str(selected_director.get("director_surname"))
+    director_full_name = " ".join(
+        part for part in [director_first_name, director_surname] if part
+    ) or "Not Available"
 
-    owner_name = payment_name if payment_name else "Not Available"
+    records: list[PaymentRecord] = []
 
-    return PaymentRecord(
-        identifier_type=identifier_type,
-        identifier_value=identifier_value,
-        owner_said_number=owner_said_number,
-        owner_name=owner_name,
-        director_said_number="Not Available",
-        director_name="Not Available",
-        entity_name=payment_name,
-        department_name=record.get("department_name"),
-        disbursement_date=record.get("disbursement_date"),
-        payment_amt=record.get("payment_amt"),
-        bank_name=record.get("bank_name"),
-        bank_account_nr=record.get("bank_account_nr"),
-        registered_bank_account_holder=record.get("registered_bank_account_holder"),
-    )
+    for bas_spend_item in bas_spend_items:
+        records.append(
+            PaymentRecord(
+                director_said_number=_safe_str(selected_director.get("identification_number")) or "Not Available",
+                directors=director_full_name,
+                director_id_type=_safe_str(selected_director.get("director_id_type")),
+                owner_said_number="Not Available",
+                owners="Not Available",
+                ownership_percentage=selected_director.get("ownership_percentage"),
+                department_name=_safe_str(bas_spend_item.get("dept_code")),
+                entity_type_number=_safe_str(supplier.get("supplier_number")),
+                csd_supplier_number=_safe_str(supplier.get("csd_supplier_number")),
+                csd_supplier_number_source=_safe_str(supplier.get("csd_supplier_number_source")),
+                payment_name=_safe_str(supplier.get("supplier_name")),
+                disbursement_date=bas_spend_item.get("disbursement_date"),
+                disbursement_post_date=bas_spend_item.get("disbursement_post_date"),
+                payment_amt=bas_spend_item.get("total_trans_amount"),
+                bank_name=_safe_str(selected_bank_account.get("bank_name")),
+                branch_name=_safe_str(selected_bank_account.get("branch_name")),
+                bank_account_nr=_safe_str(selected_bank_account.get("account_number")),
+                registered_bank_account_holder=_safe_str(selected_bank_account.get("account_holder")),
+                bank_account_type_code=_safe_str(selected_bank_account.get("bank_account_type_code")),
+                payment_desc=_safe_str(bas_spend_item.get("item_parent_lvl3_descr")),
+            )
+        )
+
+    return records

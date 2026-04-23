@@ -123,7 +123,7 @@ read -p "Default Sender Name: " SMTP_DEFAULT_SENDER
 read -p "Log Level (INFO, DEBUG, ERROR) [ERROR]: " LOG_LEVEL
 LOG_LEVEL=${LOG_LEVEL:-ERROR}
 
-read -p "OCPO Base URL [http://host.docker.internal:8000/api/v1]: " OCPO_BASE_URL
+read -p "OCPO Base URL [http://<ss-address>:8080/r1/<service-id>/<backend-path>]: " OCPO_BASE_URL
 OCPO_BASE_URL=${OCPO_BASE_URL:-'http://host.docker.internal:8000/api/v1'}
 
 read -p "X-Road Client Name: " XROAD_CLIENT

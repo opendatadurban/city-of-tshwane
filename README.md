@@ -1,4 +1,4 @@
-# OCL FastAPI Template
+# City of Tshwane APIs
 
 ## Technology Stack
 
@@ -38,7 +38,7 @@ You can (and should) pass these as environment variables from secrets
 If requirements change build a new base image
 
 ``` 
-docker buildx build -f Dockerfile -t ocl_base_image:latest .
+docker buildx build -f Dockerfile -t tshwane_base_image:latest .
 ```
 Todo: Use poetry implementation?
 
@@ -83,8 +83,8 @@ The project includes:
 ## 📚 API Documentation
 
 Once running, access the interactive API documentation at:
-- Swagger UI: `http://localhost:8080/docs`
-- ReDoc: `http://localhost:8080/redoc`
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 
 ## 📁 Project Structure
