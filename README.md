@@ -1,4 +1,5 @@
 # City of Tshwane APIs
+This API is intended as a consumer for the city to query CSD data from OCPO.
 
 ## Technology Stack
 
